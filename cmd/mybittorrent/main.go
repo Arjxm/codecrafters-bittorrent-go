@@ -2,9 +2,9 @@ package main
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"github.com/jackpal/bencode-go"
 	"os"
-
 	// Uncomment this line to pass the first stage
 	// "encoding/json"
 	"encoding/json"
@@ -175,7 +175,17 @@ func main() {
 		if err := bencode.Marshal(h, meta.Info); err != nil {
 			panic(err)
 		}
-		fmt.Printf("Info Hash: %x", h.Sum(nil))
+		fmt.Printf("Info Hash: %x\n", h.Sum(nil))
+
+		fmt.Printf("Piece Length: %d\n", meta.Info.PieceLength)
+
+		fmt.Printf("Piece Hashes: \n")
+
+		for i := 0; i < len(hex.EncodeToString([]byte(meta.Info.Pieces))); {
+			j := i + 40
+			fmt.Printf("%s\n", hex.EncodeToString([]byte(meta.Info.Pieces))[i:j])
+			i = j
+		}
 
 	} else {
 		fmt.Println("Unknown command: " + command)
