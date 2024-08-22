@@ -66,6 +66,9 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 
 			i++
 		}
+		if len(decodedList) == 0 {
+			return []interface{}{}, nil
+		}
 
 		return decodedList, nil
 
