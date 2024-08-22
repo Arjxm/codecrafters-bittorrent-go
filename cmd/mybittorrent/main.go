@@ -35,6 +35,40 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 	} else if bencodedString[0] == 'i' {
 
 		return strconv.Atoi(bencodedString[1 : len(bencodedString)-1])
+	} else if bencodedString[0] == 'l' {
+		var decodedList []interface{}
+
+		i := 0
+		for i < len(bencodedString) || bencodedString[len(bencodedString)-1] != 'e' {
+			if bencodedString[i] == ':' {
+				lengthStr := fmt.Sprintf("%c", bencodedString[i-1])
+				length, _ := strconv.Atoi(lengthStr)
+				decodedList = append(decodedList, bencodedString[i+1:i+1+length])
+			}
+
+			if bencodedString[i] == 'i' {
+				var number string
+				for j := i + 1; j < len(bencodedString)-1; j++ {
+					if bencodedString[j] == 'e' {
+						i = j
+						break
+					} else {
+						number += string(bencodedString[j])
+					}
+				}
+
+				num, err := strconv.Atoi(number)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse integer value: %v", err)
+				}
+				decodedList = append(decodedList, num)
+			}
+
+			i++
+		}
+
+		return decodedList, nil
+
 	} else {
 		return "", fmt.Errorf("Only strings are supported at the moment")
 	}
