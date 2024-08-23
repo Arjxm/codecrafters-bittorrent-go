@@ -2,107 +2,117 @@ package main
 
 import (
 	// Uncomment this line to pass the first stage
+	// "encoding/json"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
-	"strconv"
-	"unicode"
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
-// Example:
-// - 5:hello -> hello
-// - 10:hello12345 -> hello12345
-
-//lli809e5:appleee
-
-func decode(bencode string, start int) (interface{}, error) {
+func decode(b string, st int) (x interface{}, i int, err error) {
+	if st == len(b) {
+		return nil, st, io.ErrUnexpectedEOF
+	}
+	i = st
 	switch {
-	case bencode[start] == 'i':
-		return decodeInt(bencode, start)
-	case unicode.IsDigit(rune(bencode[start])):
-		return decodeString(bencode, start)
-	case bencode[start] == 'l':
-		return decodeList(bencode, start)
+	case b[i] == 'l':
+		return decodeList(b, i)
+	case b[i] == 'i':
+		return decodeInt(b, i)
+	case b[i] >= '0' && b[i] <= '9':
+		return decodeString(b, i)
+	default:
+		return nil, st, fmt.Errorf("unexpected value: %q", b[i])
 	}
-	return nil, fmt.Errorf("invalid bencode")
 }
 
-func decodeInt(b string, start int) (interface{}, error) {
-	var number string
-	for i := start + 1; i < len(b); i++ {
+func decodeInt(b string, st int) (x int, i int, err error) {
+	i = st
+	i++ // 'i'
+	if i == len(b) {
+		return 0, st, fmt.Errorf("bad int")
+	}
+	neg := false
+	if b[i] == '-' {
+		neg = true
+		i++
+	}
+	for i < len(b) && b[i] >= '0' && b[i] <= '9' {
+		x = x*10 + (int(b[i]) - '0')
+		i++
+	}
+
+	if i == len(b) || b[i] != 'e' {
+		return 0, st, fmt.Errorf("bad int")
+	}
+
+	i++
+	if neg {
+		x = -x
+	}
+	return x, i, nil
+}
+
+func decodeString(b string, st int) (x string, i int, err error) {
+	var l int
+
+	i = st
+	for i < len(b) && b[i] >= '0' && b[i] <= '9' {
+		l = l*10 + (int(b[i]) - '0')
+		i++
+	}
+	if i == len(b) || b[i] != ':' {
+		return "", st, fmt.Errorf("bad string")
+	}
+	i++
+	if i+l > len(b) {
+		return "", st, fmt.Errorf("bad string: out of bounds")
+	}
+	x = b[i : i+l]
+	//	i += l
+	i += l
+	return x, i, nil
+}
+
+func decodeList(b string, st int) (l []interface{}, i int, err error) {
+
+	i = st
+	i++ // 'l'
+	l = make([]interface{}, 0)
+	for {
+		if i >= len(b) {
+			return nil, st, fmt.Errorf("bad list")
+		}
 		if b[i] == 'e' {
 			break
 		}
-		number += string(b[i])
-	}
-	return strconv.Atoi(number)
-}
-
-func decodeString(b string, start int) (string, error) {
-	var firstColonIndex int
-	for i := start; i < len(b); i++ {
-		if b[i] == ':' {
-			firstColonIndex = i
-			break
-		}
-	}
-	lengthStr := b[start:firstColonIndex]
-	length, err := strconv.Atoi(lengthStr)
-	if err != nil {
-		return "", err
-	}
-	return b[firstColonIndex+1 : firstColonIndex+1+length], nil
-}
-
-func decodeList(b string, start int) ([]interface{}, error) {
-	i := start + 1
-	decodeList := make([]interface{}, 0)
-	for i < len(b) {
-		if b[i] == 'e' {
-			break
-		}
-		x, err := decode(b, i)
+		var x interface{}
+		x, i, err = decode(b, i)
 		if err != nil {
-			return nil, err
+			return nil, i, err
 		}
-		decodeList = append(decodeList, x)
-		if str, ok := x.(string); ok {
-			i += len(str) + len(strconv.Itoa(len(str))) + 2
-		} else if num, ok := x.(int); ok {
-			i += len(strconv.Itoa(num)) + 2
-		} else if list, ok := x.([]interface{}); ok {
-			i += len(encodeList(list)) + 2
-		}
+		l = append(l, x)
 	}
-	return decodeList, nil
-}
-
-func encodeList(list []interface{}) string {
-	var encoded string
-	for _, item := range list {
-		if str, ok := item.(string); ok {
-			encoded += strconv.Itoa(len(str)) + ":" + str
-		} else if num, ok := item.(int); ok {
-			encoded += "i" + strconv.Itoa(num) + "e"
-		} else if subList, ok := item.([]interface{}); ok {
-			encoded += "l" + encodeList(subList) + "e"
-		}
-	}
-	return encoded
+	return l, i, nil
 }
 
 func main() {
 	command := os.Args[1]
 	if command == "decode" {
-		bencodedValue := os.Args[2]
-		decoded, err := decode(bencodedValue, 0)
+
+		x, _, err := decode(os.Args[2], 0)
+
 		if err != nil {
-			fmt.Println(err)
-			return
+			fmt.Printf("error: %v\n", err)
+			os.Exit(1)
 		}
-		jsonOutput, _ := json.Marshal(decoded)
-		fmt.Println(string(jsonOutput))
+		y, err := json.Marshal(x)
+		if err != nil {
+			fmt.Printf("error: encode to json%v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s\n", y)
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
