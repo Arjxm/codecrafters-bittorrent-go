@@ -76,7 +76,6 @@ func decodeString(b string, st int) (x string, i int, err error) {
 }
 
 func decodeList(b string, st int) (l []interface{}, i int, err error) {
-
 	i = st
 	i++ // 'l'
 	l = make([]interface{}, 0)
@@ -85,6 +84,7 @@ func decodeList(b string, st int) (l []interface{}, i int, err error) {
 			return nil, st, fmt.Errorf("bad list")
 		}
 		if b[i] == 'e' {
+			i++
 			break
 		}
 		var x interface{}
