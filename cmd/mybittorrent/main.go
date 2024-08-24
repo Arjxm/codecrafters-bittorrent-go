@@ -14,7 +14,6 @@ import (
 
 type MetaInfo struct {
 	Name        string `bencode:"name"`
-	Piece       string `bencode:"piece"`
 	Pieces      string `bencode:"pieces"`
 	Length      int64  `bencode:"length"`
 	PieceLength int64  `bencode:"piece length"`
