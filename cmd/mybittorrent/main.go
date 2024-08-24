@@ -1,14 +1,28 @@
 package main
 
 import (
+	"crypto/sha1"
+	"github.com/jackpal/bencode-go"
+	"os"
+
 	// Uncomment this line to pass the first stage
 	// "encoding/json"
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
-	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
+
+type MetaInfo struct {
+	Name        string `bencode:"name"`
+	Piece       string `bencode:"piece"`
+	Pieces      string `bencode:"pieces"`
+	Length      int64  `bencode:"length"`
+	PieceLength int64  `bencode:"piece length"`
+}
+type Meta struct {
+	Announce string   `bencode:"announce"`
+	Info     MetaInfo `bencode:"info"`
+}
 
 func decode(b string, st int) (x interface{}, i int, err error) {
 	if st == len(b) {
@@ -147,22 +161,22 @@ func main() {
 		}
 		fmt.Printf("%s\n", y)
 	} else if command == "info" {
-		filePath := os.Args[2]
-		file, _ := os.ReadFile(filePath)
-
-		x, _, _ := decode(string(file), 0)
-
-		var y map[string]interface{}
-
-		y = x.(map[string]interface{})
-
-		fmt.Printf("Tracker URL: %v\n", y["announce"])
-		info, ok := y["info"].(map[string]interface{})
-		if info == nil || !ok {
-			fmt.Printf("No info section\n")
-			return
+		fileName := os.Args[2]
+		f, err := os.Open(fileName)
+		if err != nil {
+			panic(err)
 		}
-		fmt.Printf("Length: %v\n", info["length"])
+		var meta Meta
+		if err := bencode.Unmarshal(f, &meta); err != nil {
+			panic(err)
+		}
+		fmt.Println("Tracker URL:", meta.Announce)
+		fmt.Println("Length:", meta.Info.Length)
+		h := sha1.New()
+		if err := bencode.Marshal(h, meta.Info); err != nil {
+			panic(err)
+		}
+		fmt.Printf("Info Hash: %x\n", h.Sum(nil))
 
 	} else {
 		fmt.Println("Unknown command: " + command)
