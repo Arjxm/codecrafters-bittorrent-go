@@ -175,7 +175,7 @@ func main() {
 		if err := bencode.Marshal(h, meta.Info); err != nil {
 			panic(err)
 		}
-		fmt.Printf("Info Hash: %x\n", h.Sum(nil))
+		fmt.Printf("Info Hash: %x", h.Sum(nil))
 
 	} else {
 		fmt.Println("Unknown command: " + command)
