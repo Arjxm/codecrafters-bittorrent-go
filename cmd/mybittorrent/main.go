@@ -131,23 +131,23 @@ func decodeDict(b string, st int) (d map[string]interface{}, i int, err error) {
 }
 
 func main() {
-	//command := os.Args[1]
-	//if command == "decode" {
+	command := os.Args[1]
+	if command == "decode" {
 
-	x, _, err := decode("d3:foo3:bar5:helloi52ee", 0)
+		x, _, err := decode(os.Args[2], 0)
 
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			os.Exit(1)
+		}
+		y, err := json.Marshal(x)
+		if err != nil {
+			fmt.Printf("error: encode to json%v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s\n", y)
+	} else {
+		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
 	}
-	y, err := json.Marshal(x)
-	if err != nil {
-		fmt.Printf("error: encode to json%v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("%s\n", y)
-	//} else {
-	//	fmt.Println("Unknown command: " + command)
-	//	os.Exit(1)
-	//}
 }
