@@ -20,6 +20,8 @@ func decode(b string, st int) (x interface{}, i int, err error) {
 		return decodeList(b, i)
 	case b[i] == 'i':
 		return decodeInt(b, i)
+	case b[i] == 'd':
+		return decodeDict(b, i)
 	case b[i] >= '0' && b[i] <= '9':
 		return decodeString(b, i)
 	default:
@@ -97,24 +99,55 @@ func decodeList(b string, st int) (l []interface{}, i int, err error) {
 	return l, i, nil
 }
 
+func decodeDict(b string, st int) (d map[string]interface{}, i int, err error) {
+	i = st
+	i++ // 'd'
+	d = make(map[string]interface{})
+	for {
+		if i >= len(b) {
+			return nil, st, fmt.Errorf("bad dict")
+		}
+		if b[i] == 'e' {
+			i++
+			break
+		}
+
+		//key
+		var key interface{}
+		key, i, err = decode(b, i)
+		if err != nil {
+			return nil, i, err
+		}
+
+		//value
+		val, j, err := decode(b, i)
+		if err != nil {
+			return nil, j, err
+		}
+		d[key.(string)] = val
+		i = j
+	}
+	return d, i, nil
+}
+
 func main() {
-	command := os.Args[1]
-	if command == "decode" {
+	//command := os.Args[1]
+	//if command == "decode" {
 
-		x, _, err := decode(os.Args[2], 0)
+	x, _, err := decode("d3:foo3:bar5:helloi52ee", 0)
 
-		if err != nil {
-			fmt.Printf("error: %v\n", err)
-			os.Exit(1)
-		}
-		y, err := json.Marshal(x)
-		if err != nil {
-			fmt.Printf("error: encode to json%v\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("%s\n", y)
-	} else {
-		fmt.Println("Unknown command: " + command)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
 		os.Exit(1)
 	}
+	y, err := json.Marshal(x)
+	if err != nil {
+		fmt.Printf("error: encode to json%v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("%s\n", y)
+	//} else {
+	//	fmt.Println("Unknown command: " + command)
+	//	os.Exit(1)
+	//}
 }
