@@ -170,8 +170,8 @@ func main() {
 		if err := bencode.Unmarshal(f, &meta); err != nil {
 			panic(err)
 		}
-		fmt.Println("Tracker URL:", meta.Announce)
-		fmt.Println("Length:", meta.Info.Length)
+		//fmt.Println("Tracker URL:", meta.Announce)
+		//fmt.Println("Length:", meta.Info.Length)
 		h := sha1.New()
 		if err := bencode.Marshal(h, meta.Info); err != nil {
 			panic(err)
