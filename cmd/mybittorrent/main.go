@@ -146,6 +146,24 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("%s\n", y)
+	} else if command == "info" {
+		filePath := os.Args[2]
+		file, _ := os.ReadFile(filePath)
+
+		x, _, _ := decode(string(file), 0)
+
+		var y map[string]interface{}
+
+		y = x.(map[string]interface{})
+
+		fmt.Printf("Tracker URL: %v\n", y["announce"])
+		info, ok := y["info"].(map[string]interface{})
+		if info == nil || !ok {
+			fmt.Printf("No info section\n")
+			return
+		}
+		fmt.Printf("Length: %v\n", info["length"])
+
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
