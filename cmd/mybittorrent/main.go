@@ -26,23 +26,7 @@ type Meta struct {
 	Info     MetaInfo `bencode:"info"`
 }
 
-type TrackerResponse struct {
-	Complete    int    `json:"complete"`
-	Incomplete  int    `json:"incomplete"`
-	Interval    int    `json:"interval"`
-	MinInterval int    `json:"min interval"`
-	Peers       string `json:"peers"`
-}
-
-func getInfo(f *os.File) (Meta, error) {
-	var meta Meta
-	if err := bencode.Unmarshal(f, &meta); err != nil {
-		panic(err)
-	}
-	return meta, nil
-}
-
-func makeRequest(meta Meta) {
+func genrateUrl(meta Meta) string {
 	h := sha1.New()
 	if err := bencode.Marshal(h, meta.Info); err != nil {
 		panic(err)
@@ -61,9 +45,21 @@ func makeRequest(meta Meta) {
 
 	// Construct the final URL with query parameters
 	finalURL := fmt.Sprintf("%s?%s", meta.Announce, params.Encode())
+	return finalURL
+}
 
+func getInfo(f *os.File) (Meta, error) {
+	var meta Meta
+	if err := bencode.Unmarshal(f, &meta); err != nil {
+		panic(err)
+	}
+	return meta, nil
+}
+
+func makeRequest(meta Meta) {
+	Turl := genrateUrl(meta)
 	// Making the GET request
-	response, _ := http.Get(finalURL)
+	response, _ := http.Get(Turl)
 	defer response.Body.Close()
 	body, _ := io.ReadAll(response.Body)
 	res, _, _ := decoder.Decode(string(body), 0)
@@ -151,6 +147,44 @@ func main() {
 		}
 		meta, _ := getInfo(f)
 		makeRequest(meta)
+
+	case "handshake":
+		fileName := os.Args[2]
+		peerAddr := os.Args[3]
+		f, err := os.Open(fileName)
+		meta, _ := getInfo(f)
+		if err != nil {
+			panic(err)
+		}
+		conn, err := net.Dial("tcp", peerAddr)
+		if err != nil {
+			panic(err)
+		}
+		defer conn.Close()
+		fmt.Println("Connected to tracker")
+
+		pstrlen := byte(19) // The length of the string "BitTorrent protocol"
+		pstr := []byte("BitTorrent protocol")
+		reserved := make([]byte, 8) // Eight zeros
+		handshake := append([]byte{pstrlen}, pstr...)
+		handshake = append(handshake, reserved...)
+
+		h := sha1.New()
+		if err := bencode.Marshal(h, meta.Info); err != nil {
+			panic(err)
+		}
+		infoHash := h.Sum(nil)
+		handshake = append(handshake, infoHash...)
+		handshake = append(handshake, []byte{0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9}...)
+
+		_, err = conn.Write(handshake)
+		buf := make([]byte, 68)
+		_, err = conn.Read(buf)
+		if err != nil {
+			fmt.Println("failed:", err)
+			return
+		}
+		fmt.Printf("Peer ID: %s\n", hex.EncodeToString(buf[48:]))
 
 	default:
 		fmt.Println("Unknown command: " + command)
