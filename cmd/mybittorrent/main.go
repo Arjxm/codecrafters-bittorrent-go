@@ -6,13 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/codecrafters-io/bittorrent-starter-go/cmd/decoder"
-	"github.com/jackpal/bencode-go"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/codecrafters-io/bittorrent-starter-go/cmd/decoder"
+	"github.com/jackpal/bencode-go"
 )
 
 type MetaInfo struct {
@@ -59,7 +60,11 @@ func getInfo(f *os.File) (Meta, error) {
 func makeRequest(meta Meta) {
 	Turl := genrateUrl(meta)
 	// Making the GET request
-	response, _ := http.Get(Turl)
+	response, err := http.Get(Turl)
+	if err != nil {
+		panic(err)
+	}
+
 	defer response.Body.Close()
 	body, _ := io.ReadAll(response.Body)
 	res, _, _ := decoder.Decode(string(body), 0)
