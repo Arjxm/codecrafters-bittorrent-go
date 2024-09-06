@@ -1,0 +1,16 @@
+BitTorrent
+
+
+# Bencode 
+   • Serialization format use by BitTorrent. 
+   • 5:hello → hello   length:content 
+   • i3e -> 3 i-3e → -3  integer 
+
+
+Bencode supports four data types``
+
+   • strings
+   • integers
+   • arrays
+   • dictionaries
+
